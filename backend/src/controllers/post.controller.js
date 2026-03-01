@@ -3,10 +3,73 @@ import { Post } from "../models/post.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { Notification } from "../models/notification.model.js";
 
-//get all the posts
-//get following people posts
-//get all the comments to that post
+export const getAllPosts = async (req, res) => {
+    try {
+        const posts = await Post.find()
+            .sort({ createdAt: -1 })
+            .populate({
+                path: "user",
+                select: "-password",
+            })
+            .populate({
+                path: "comments.user",
+                select: "-password",
+            });
 
+        if (posts.length === 0) {
+            return res.status(200).json([]);
+        }
+
+        return res.status(200).json(posts);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+}
+export const getAllFollowingUsersPosts = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        const following = user.following;
+
+        const feedPosts = await Post.find({ user: { $in: following } })
+            .sort({ createdAt: -1 })
+            .populate({
+                path: "user",
+                select: "-password",
+            })
+            .populate({
+                path: "comments.user",
+                select: "-password",
+            });
+        return res.status(200).json(feedPosts);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+}
+export const getLikedPosts = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        const likedPosts = await Post.find({ _id: { $in: user.likedPosts } })
+            .sort({ createdAt: -1 })
+            .populate({
+                path: "user",
+                select: "-password",
+            })
+            .populate({
+                path: "comments.user",
+                select: "-password",
+            });
+
+        return res.status(200).json(likedPosts);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+}
 export const createPost = async (req, res) => {
     try {
         const { text } = req.body;
@@ -48,6 +111,10 @@ export const deletePost = async (req, res) => {
             const imageId = post.image.split("/").pop().split(".")[0];
             await cloudinary.uploader.destroy(imageId);
         }
+        await User.updateMany(
+            { likedPosts: id },
+            { $pull: { likedPosts: id } }
+        );
         await Post.findByIdAndDelete(id);
         return res.status(200).json({ message: "post deleted successfully" })
     } catch (error) {
@@ -78,7 +145,7 @@ export const commentOnPost = async (req, res) => {
         return res.status(500).json({ error: error.message });
     }
 }
-export const likeOnPost = async (req, res) => {
+export const likeAndUnlikePost = async (req, res) => {
     try {
         const { id } = req.params
         const post = await Post.findById(id)
@@ -89,27 +156,30 @@ export const likeOnPost = async (req, res) => {
         const user = await User.findById(userId)
         if (!user) return res.status(404).json({ message: "User not found" });
 
-        //fist check if user alreadyy liked or not 
-        //if yes then remove like from post.likes and also user.likedPost remove 
-        //if no so push that user id in post.likes and also user.likedPost  
-        
-        const userLikedPost=post.likes.includes(userId)
-        if(userLikedPost){
-          
-        }else{
-            await Post.likes.push(userId)
-            await User.likedPost.push(userId)
-            const newNotification=new Notification({
-                
-            })
-        }
+        const userLikedPost = post.likes.includes(userId)
+        if (userLikedPost) {
+            await Post.updateOne({ _id: id }, { $pull: { likes: userId } });
+            await User.updateOne({ _id: userId }, { $pull: { likedPosts: id } });
 
-        post.likes.push(userId)
-        await post.save()
-        return res.status(200).json({
-            message: "Like added",
-            likesCount: post.likes.length
-        });
+            const updatedLikes = post.likes.filter((id) => id.toString() !== userId.toString());
+            res.status(200).json(updatedLikes);
+        } else {
+            post.likes.push(userId)
+            await User.updateOne({ _id: userId }, { $push: { likedPosts: id } })
+            await post.save()
+
+            if (post.user.toString() !== userId.toString()) {
+                const newNotification = new Notification({
+                    from: userId,
+                    to: post.user,
+                    type: "like"
+                })
+                await newNotification.save()
+            }
+
+            const updatedLikes = post.likes;
+            res.status(200).json(updatedLikes);
+        }
     } catch (error) {
         return res.status(500).json({ error: error.message });
     }

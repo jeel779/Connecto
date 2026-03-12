@@ -31,11 +31,11 @@ export const registerUser = async (req, res) => {
 }
 export const loginUser = async (req, res) => {
    try {
-      const { username, password } = req.body;
-      if (!username || !password) {
+      const { email, password } = req.body;
+      if (!email || !password) {
          return res.status(401).json({ message: "enter all the credentials" })
       }
-      const user = await User.findOne({ username })
+      const user = await User.findOne({ email })
       if (!user) {
          return res.status(401).json({ message: "user not exist" })
       }

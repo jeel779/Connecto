@@ -1,71 +1,61 @@
-import { useState } from 'react'
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-
-const SUGGESTED_USERS = [
-  {
-    id: 1,
-    avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=luna',
-    displayName: 'Luna Rodriguez',
-    username: 'lunacodes',
-  },
-  {
-    id: 2,
-    avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=tomjay',
-    displayName: 'Tom Jayden',
-    username: 'tomjaydev',
-  },
-  {
-    id: 3,
-    avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=aisha',
-    displayName: 'Aisha Kapoor',
-    username: 'aisha_k',
-  },
-  {
-    id: 4,
-    avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=oscar99',
-    displayName: 'Oscar Huang',
-    username: 'oscarbuilds',
-  },
-  {
-    id: 5,
-    avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=zara_x',
-    displayName: 'Zara Kim',
-    username: 'zarakim',
-  },
-]
-
-function FollowButton() {
-  const [following, setFollowing] = useState(false)
-  return (
-    <Button
-      size="sm"
-      variant={following ? 'outline' : 'default'}
-      className="text-xs h-7 px-3 rounded-full flex-shrink-0 transition-all"
-      onClick={() => setFollowing(p => !p)}
-    >
-      {following ? 'Following' : 'Follow'}
-    </Button>
-  )
-}
+import { useAuthStore } from '../store/useAuthStore'
 
 function SuggestedUserCard({ user }) {
+  const { authUser, followUnfollowUser } = useAuthStore()
+  const isFollowing = authUser?.following?.includes(user._id)
+
+  const handleFollow = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    followUnfollowUser(user._id)
+  }
+
+  const avatarUrl = user.profileImage || '/avatar-placeholder.svg'
+
   return (
     <div className="flex items-center gap-3 px-5 py-3.5 hover:bg-accent/30 transition-colors">
       <img
-        src={user.avatar}
-        alt={user.displayName}
+        src={avatarUrl}
+        alt={user.fullName}
         className="w-11 h-11 rounded-full object-cover ring-1 ring-border flex-shrink-0"
       />
       <div className="flex-1 min-w-0">
-        <p className="text-base font-semibold text-foreground truncate">{user.displayName}</p>
+        <p className="text-base font-semibold text-foreground truncate">{user.fullName}</p>
         <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
       </div>
-      <FollowButton />
+      <Button
+        size="sm"
+        variant={isFollowing ? 'outline' : 'default'}
+        className="text-xs h-7 px-3 rounded-full flex-shrink-0 transition-all cursor-pointer"
+        onClick={handleFollow}
+      >
+        {isFollowing ? 'Following' : 'Follow'}
+      </Button>
     </div>
   )
 }
 
 export default function SuggestedUsers() {
+  const { suggestedUsers, fetchSuggestedUsers, isFetchingSuggestions } = useAuthStore()
+
+  useEffect(() => {
+    fetchSuggestedUsers()
+  }, [fetchSuggestedUsers])
+
+  if (isFetchingSuggestions && suggestedUsers.length === 0) {
+    return (
+      <div className="bg-card border border-border rounded-2xl overflow-hidden p-5 text-center text-sm text-muted-foreground">
+        Loading suggestions...
+      </div>
+    )
+  }
+
+  if (suggestedUsers.length === 0) {
+    return null;
+  }
+
   return (
     <div className="bg-card border border-border rounded-2xl overflow-hidden">
       <div className="px-5 pt-5 pb-3">
@@ -73,8 +63,8 @@ export default function SuggestedUsers() {
       </div>
 
       <div className="divide-y divide-border">
-        {SUGGESTED_USERS.map(user => (
-          <SuggestedUserCard key={user.id} user={user} />
+        {suggestedUsers.slice(0, 5).map(user => (
+          <SuggestedUserCard key={user._id} user={user} />
         ))}
       </div>
     </div>

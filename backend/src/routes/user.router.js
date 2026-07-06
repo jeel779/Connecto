@@ -1,5 +1,5 @@
 import { Router } from "express"
-import { followAndUnfollowUser, getMe, getUserProfile, loginUser, logoutUser, registerUser, updateCoverImage, updateProfile, updateProfileImage } from "../controllers/user.controller.js"
+import { followAndUnfollowUser, getMe, getUserProfile, loginUser, logoutUser, registerUser, updateCoverImage, updateProfile, updateProfileImage, getSuggestedUsers } from "../controllers/user.controller.js"
 import { upload } from "../middlewares/multer.middleware.js"
 import { verifyJwt } from "../middlewares/auth.middleware.js"
 const router=Router()
@@ -8,6 +8,7 @@ router.post("/signup",registerUser)
 router.post("/login",loginUser)
 router.post("/logout",verifyJwt,logoutUser)
 router.post("/follow/:id",verifyJwt,followAndUnfollowUser)
+router.get("/suggested",verifyJwt,getSuggestedUsers)
 router.get("/profile/:username",verifyJwt,getUserProfile)
 router.get("/profile",verifyJwt,getMe)
 router.patch("/update",verifyJwt,updateProfile)

@@ -23,7 +23,7 @@ const navItems = [
 
 export default function Sidebar({ onLogout }) {
   return (
-    <aside className="fixed top-0 left-0 h-screen w-[22%] min-w-[200px] max-w-[280px] flex flex-col border-r border-border bg-background px-4 py-6 z-40">
+    <aside className="sticky top-0 h-screen w-[20%] shrink-0 flex flex-col border-r border-border bg-background px-6 py-8 overflow-y-auto z-40">
       {/* Logo */}
       <div className="flex items-center gap-3 px-3 mb-8">
         <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0">

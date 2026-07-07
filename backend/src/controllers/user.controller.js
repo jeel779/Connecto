@@ -31,8 +31,9 @@ export const registerUser = async (req, res) => {
       res.cookie("token", token, {
          httpOnly: true,
          secure: true,
+         sameSite: "none",
       })
-      return res.status(200).json({ message: "user created successfully", createdUser })
+      return res.status(200).json({ message: "user created successfully", createdUser, token })
    } catch (error) {
       return res.status(500).json({ error: error.message });
    }
@@ -58,9 +59,11 @@ export const loginUser = async (req, res) => {
       res.cookie("token", token, {
          httpOnly: true,
          secure: true,
+         sameSite: "none",
       })
       return res.status(200).json({
          message: "login successful",
+         token,
          user: {
             _id: user._id,
             fullName: user.fullName,
@@ -94,6 +97,7 @@ export const logoutUser = async (req, res) => {
       res.clearCookie("token", {
          httpOnly: true,
          secure: true,
+         sameSite: "none",
       });
       return res.status(200).json({
          success: true,

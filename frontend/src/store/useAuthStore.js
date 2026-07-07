@@ -46,6 +46,9 @@ export const useAuthStore = create((set, get) => ({
         try {
             set({ isLoggingIn: true })
             const data = await loginUser(userData.email, userData.password)
+            if (data.token) {
+                localStorage.setItem("token", data.token)
+            }
             set({ authUser: data.user })
             toast.success("Logged in successfully")
         } catch (error) {
@@ -70,6 +73,7 @@ export const useAuthStore = create((set, get) => ({
         try {
             set({ isLoggingOut: true })
             await logoutUser()
+            localStorage.removeItem("token")
             set({ authUser: null })
             toast.success("Logged out successfully")
         } catch (error) {

@@ -1,7 +1,14 @@
 import { create } from "zustand";
-import axios from "axios";
 import toast from "react-hot-toast";
-const BASE_URL = process.env.VITE_BACKEND_URL || "http://localhost:3000/api/v1";
+import {
+  getAllPosts,
+  getFollowingPosts,
+  getLikedPosts,
+  createPost as apiCreatePost,
+  deletePost as apiDeletePost,
+  likeUnlikePost as apiLikeUnlikePost,
+  commentOnPost as apiCommentOnPost
+} from "../helpers/api-communicator";
 
 export const usePostStore = create((set, get) => ({
     posts: [],
@@ -12,10 +19,8 @@ export const usePostStore = create((set, get) => ({
     fetchPosts: async (feedType = "all") => {
         try {
             set({ isFetchingPosts: true });
-            const endpoint = feedType === "following" ? `${BASE_URL}/posts/following` : `${BASE_URL}/posts/all`;
-            const response = await axios.get(endpoint);
-            // If empty response, backend returns [] or status 200 with empty array
-            set({ posts: Array.isArray(response.data) ? response.data : [] });
+            const data = feedType === "following" ? await getFollowingPosts() : await getAllPosts();
+            set({ posts: Array.isArray(data) ? data : [] });
         } catch (error) {
             console.error("Error fetching posts:", error);
             set({ posts: [] });
@@ -27,8 +32,8 @@ export const usePostStore = create((set, get) => ({
     fetchLikedPosts: async () => {
         try {
             set({ isFetchingPosts: true });
-            const response = await axios.get(`${BASE_URL}/posts/liked`);
-            set({ likedPosts: Array.isArray(response.data) ? response.data : [] });
+            const data = await getLikedPosts();
+            set({ likedPosts: Array.isArray(data) ? data : [] });
         } catch (error) {
             console.error("Error fetching liked posts:", error);
             set({ likedPosts: [] });
@@ -44,16 +49,13 @@ export const usePostStore = create((set, get) => ({
             if (text) formData.append("text", text);
             if (imageFile) formData.append("image", imageFile);
 
-            const response = await axios.post(`${BASE_URL}/posts/create`, formData, {
-                headers: { "Content-Type": "multipart/form-data" }
-            });
+            const data = await apiCreatePost(formData);
             
-            toast.success(response.data.message || "Post created successfully");
-            // Refresh feed
+            toast.success(data.message || "Post created successfully");
             get().fetchPosts();
             return true;
         } catch (error) {
-            toast.error(error.response?.data?.message || "Failed to create post");
+            toast.error(error.response?.data?.message || error.message || "Failed to create post");
             return false;
         } finally {
             set({ isCreatingPost: false });
@@ -62,23 +64,22 @@ export const usePostStore = create((set, get) => ({
 
     deletePost: async (postId) => {
         try {
-            const response = await axios.delete(`${BASE_URL}/posts/${postId}`);
-            toast.success(response.data.message || "Post deleted successfully");
+            const data = await apiDeletePost(postId);
+            toast.success(data.message || "Post deleted successfully");
             set({
                 posts: get().posts.filter(p => p._id !== postId),
                 likedPosts: get().likedPosts.filter(p => p._id !== postId),
             });
         } catch (error) {
-            toast.error(error.response?.data?.message || "Failed to delete post");
+            toast.error(error.response?.data?.message || error.message || "Failed to delete post");
         }
     },
 
     likeUnlikePost: async (postId) => {
         try {
-            const response = await axios.patch(`${BASE_URL}/posts/like/${postId}`);
-            const updatedLikes = response.data; // Array of liked user IDs
+            const data = await apiLikeUnlikePost(postId);
+            const updatedLikes = data;
 
-            // Update in posts list
             set({
                 posts: get().posts.map(p => {
                     if (p._id === postId) {
@@ -94,24 +95,22 @@ export const usePostStore = create((set, get) => ({
                 })
             });
         } catch (error) {
-            toast.error(error.response?.data?.message || "Failed to like/unlike post");
+            toast.error(error.response?.data?.message || error.message || "Failed to like/unlike post");
         }
     },
 
     commentOnPost: async (postId, text) => {
         try {
-            const response = await axios.post(`${BASE_URL}/posts/comment/${postId}`, { text });
-            toast.success(response.data.message || "Comment added");
+            const data = await apiCommentOnPost(postId, text);
+            toast.success(data.message || "Comment added");
             
-            // Re-fetch posts to get complete populated comments
-            const responseAll = await axios.get(`${BASE_URL}/posts/all`);
-            set({ posts: Array.isArray(responseAll.data) ? responseAll.data : [] });
+            const dataAll = await getAllPosts();
+            set({ posts: Array.isArray(dataAll) ? dataAll : [] });
             
-            // Also refresh liked posts in case we are on the liked page
-            const responseLiked = await axios.get(`${BASE_URL}/posts/liked`);
-            set({ likedPosts: Array.isArray(responseLiked.data) ? responseLiked.data : [] });
+            const dataLiked = await getLikedPosts();
+            set({ likedPosts: Array.isArray(dataLiked) ? dataLiked : [] });
         } catch (error) {
-            toast.error(error.response?.data?.message || "Failed to add comment");
+            toast.error(error.response?.data?.message || error.message || "Failed to add comment");
         }
     }
 }));

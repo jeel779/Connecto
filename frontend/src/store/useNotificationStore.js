@@ -1,7 +1,9 @@
 import { create } from "zustand";
-import axios from "axios";
 import toast from "react-hot-toast";
-const BASE_URL = process.env.VITE_BACKEND_URL || "http://localhost:3000/api/v1";
+import {
+  getNotifications,
+  clearNotifications as apiClearNotifications
+} from "../helpers/api-communicator";
 
 export const useNotificationStore = create((set, get) => ({
     notifications: [],
@@ -10,12 +12,8 @@ export const useNotificationStore = create((set, get) => ({
     fetchNotifications: async () => {
         try {
             set({ isFetchingNotifications: true });
-            const response = await axios.get(`${BASE_URL}/notification`);
-            // Wait, let's verify the route registered in index.js:
-            // app.use("/api/v1/notifications",notificationRouter)
-            // Ah! The endpoint prefix is "/api/v1/notifications", NOT "/api/v1/notification". Let's use notifications!
-            const responseCorrect = await axios.get(`${BASE_URL}/notifications`);
-            set({ notifications: Array.isArray(responseCorrect.data) ? responseCorrect.data : [] });
+            const data = await getNotifications();
+            set({ notifications: Array.isArray(data) ? data : [] });
         } catch (error) {
             console.error("Error fetching notifications:", error);
             set({ notifications: [] });
@@ -26,11 +24,11 @@ export const useNotificationStore = create((set, get) => ({
 
     clearNotifications: async () => {
         try {
-            const response = await axios.delete(`${BASE_URL}/notifications`);
-            toast.success(response.data.message || "Notifications cleared");
+            const data = await apiClearNotifications();
+            toast.success(data.message || "Notifications cleared");
             set({ notifications: [] });
         } catch (error) {
-            toast.error(error.response?.data?.message || "Failed to clear notifications");
+            toast.error(error.response?.data?.message || error.message || "Failed to clear notifications");
         }
     }
 }));

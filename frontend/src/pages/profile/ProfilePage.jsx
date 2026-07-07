@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import PostCard from '@/components/PostCard'
-import axios from 'axios'
+import { getUserProfile, updateProfileImage, updateCoverImage } from '@/helpers/api-communicator'
 import toast from 'react-hot-toast'
 
 export default function ProfilePage() {
@@ -38,8 +38,8 @@ export default function ProfilePage() {
   const fetchProfile = async (uname) => {
     try {
       setIsFetchingProfile(true)
-      const response = await axios.get(`http://localhost:3000/api/v1/user/profile/${uname}`)
-      setProfileUser(response.data.user)
+      const data = await getUserProfile(uname)
+      setProfileUser(data.user)
     } catch (error) {
       console.error(error)
       toast.error("User not found")
@@ -93,13 +93,11 @@ export default function ProfilePage() {
 
     const loadingToast = toast.loading("Updating profile image...")
     try {
-      await axios.patch(`http://localhost:3000/api/v1/user/update-profile-image`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      await updateProfileImage(formData)
       toast.success("Profile image updated", { id: loadingToast })
       await checkAuth()
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to update profile image", { id: loadingToast })
+      toast.error(err.response?.data?.message || err.message || "Failed to update profile image", { id: loadingToast })
     }
   }
 
@@ -111,19 +109,16 @@ export default function ProfilePage() {
 
     const loadingToast = toast.loading("Updating cover banner...")
     try {
-      await axios.patch(`http://localhost:3000/api/v1/user/update-cover-image`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      await updateCoverImage(formData)
       toast.success("Cover banner updated", { id: loadingToast })
       await checkAuth()
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to update cover banner", { id: loadingToast })
+      toast.error(err.response?.data?.message || err.message || "Failed to update cover banner", { id: loadingToast })
     }
   }
 
   const handleEditSubmit = async (e) => {
     e.preventDefault()
-    // Clean passwords if empty
     const submissionData = { ...editFormData }
     if (!submissionData.currentPassword || !submissionData.newPassword) {
       delete submissionData.currentPassword
@@ -155,7 +150,6 @@ export default function ProfilePage() {
     )
   }
 
-  // Filter posts
   const userPosts = posts.filter(p => p.user?._id === profileUser._id)
   const displayedLikedPosts = isMyProfile
     ? likedPosts

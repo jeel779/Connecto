@@ -24,6 +24,14 @@ export const registerUser = async (req, res) => {
          password: hashedPassword
       })
       const createdUser = await User.findById(user._id).select("-password")
+      const payload = {
+         _id: user._id
+      }
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "7d" })
+      res.cookie("token", token, {
+         httpOnly: true,
+         secure: true,
+      })
       return res.status(200).json({ message: "user created successfully", createdUser })
    } catch (error) {
       return res.status(500).json({ error: error.message });

@@ -8,8 +8,8 @@ export const loginUser = async (email, password) => {
   return res.data;
 };
 
-export const signupUser = async (fullName,username, email, password) => {
-  const res = await axiosInstance.post("/user/signup", { fullName,username, email, password });
+export const signupUser = async (fullName, username, email, password) => {
+  const res = await axiosInstance.post("/user/signup", { fullName, username, email, password });
   if (res.status !== 200) {
     throw new Error("Unable to Signup");
   }

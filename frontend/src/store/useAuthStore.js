@@ -34,7 +34,7 @@ export const useAuthStore = create((set, get) => ({
     signup: async (userData) => {
         try {
             set({ isSigningUp: true })
-            await signupUser(userData.fullName,userData.username, userData.email, userData.password)
+            await signupUser(userData.fullName, userData.username, userData.email, userData.password)
             await get().login({ email: userData.email, password: userData.password })
         } catch (error) {
             toast.error(error.response?.data?.message || error.message || "Signup failed");

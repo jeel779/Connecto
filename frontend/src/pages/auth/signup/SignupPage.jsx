@@ -16,9 +16,9 @@ import { useAuthStore } from '../../../store/useAuthStore'
 
 function SignupPage() {
     const [formData, setFormData] = useState({
+        fullName: "",
         email: "",
         username: "",
-        fullName: "",
         password: ""
     })
     const {isSigningUp,signup} = useAuthStore()
